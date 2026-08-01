@@ -168,4 +168,32 @@ describe('paginate integration (real MongoDB)', () => {
     expect(pageInfo.hasNextPage).toBe(false);
     expect(pageInfo.nextCursor).toBeUndefined();
   });
+
+  it('paginates by a nested (dotted-path) sort field', async () => {
+    const col = client.db('test').collection('nested');
+    // user.age = 100..91, so sorting by user.age DESC yields seq 0..9 in order.
+    await col.insertMany(
+      Array.from({ length: 10 }, (_, i) => ({ seq: i, user: { age: 100 - i } })),
+    );
+
+    const sort = { 'user.age': SortDirection.DESC, _id: SortDirection.ASC };
+    const seen: number[] = [];
+    let cursor: string | undefined;
+
+    for (let guard = 0; guard < 50; guard++) {
+      const { documents, pageInfo } = await paginate<{ seq: number }>(col, {
+        sort,
+        limit: 3,
+        cursor,
+      });
+      seen.push(...documents.map((d) => d.seq));
+      if (!pageInfo.hasNextPage) break;
+      cursor = pageInfo.nextCursor;
+    }
+
+    expect(seen.length).toBe(10);
+    expect(new Set(seen).size).toBe(10);
+    // user.age DESC == seq ascending, walked across pages with no gaps/overlaps.
+    expect(seen).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  });
 });
