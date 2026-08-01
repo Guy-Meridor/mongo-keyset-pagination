@@ -2,6 +2,8 @@
 
 Generic **keyset (cursor) pagination** for MongoDB aggregation pipelines.
 
+> 📝 The story behind it: [How keyset pagination made our most-used API over 100x faster on MongoDB](https://medium.com/@guymeridor1/how-keyset-pagination-made-our-most-used-api-over-100x-faster-for-large-datasets-on-mongodb-bdfaa03052f6)
+
 Offset pagination (`.skip(n).limit(k)`) makes the database walk and discard all
 `n` skipped documents, so each page gets slower the deeper you go. Keyset
 pagination instead seeks straight to your position via the index and reads only
